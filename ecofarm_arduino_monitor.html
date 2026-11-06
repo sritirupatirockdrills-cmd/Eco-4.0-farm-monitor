@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#102d28">
+<title>EcoFarm — Arduino Monitor</title>
+<style>
+:root{--bg:#f3f7f4;--ink:#17352d;--muted:#71847d;--green:#16845a;--blue:#2867c7;--orange:#b76a25;--card:#fff;--line:#e2ebe5}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#e8f4ed,#f7f8f2 55%,#e5f0ec);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink);min-height:100vh}
+.wrap{max-width:760px;margin:auto;padding:22px 16px 40px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 22px}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:15px;background:#d8efe2;display:grid;place-items:center;font-size:25px}
+h1{font-size:22px;line-height:1.1;margin:0}.sub{color:var(--muted);font-size:13px;margin-top:5px}
+.pill{font-size:12px;font-weight:700;border-radius:99px;padding:8px 11px;background:#fff;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.hero{background:linear-gradient(130deg,#123d31,#176447);color:#fff;border-radius:24px;padding:21px;margin-bottom:18px;box-shadow:0 12px 30px #164a3420}
+.hero-top{display:flex;justify-content:space-between;align-items:center;gap:12px}.hero h2{font-size:18px;margin:0 0 5px}.hero p{margin:0;color:#c7e4d5;font-size:13px}
+.status{display:flex;align-items:center;gap:7px;font-size:12px;color:#d7f4e3}.dot{width:8px;height:8px;border-radius:50%;background:#ffcb69}.dot.on{background:#6ce0a0;box-shadow:0 0 0 4px #6ce0a022}
+.controls{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.btn{border:0;border-radius:13px;padding:12px 16px;font-weight:700;font-size:14px;cursor:pointer}.primary{background:#d7f3e2;color:#125438}.secondary{background:#ffffff18;color:white;border:1px solid #ffffff40}.btn:disabled{opacity:.45;cursor:not-allowed}
+.settings{display:flex;align-items:center;gap:9px;margin-top:14px;color:#d7e9df;font-size:12px}.settings select{background:#ffffff18;color:white;border:1px solid #ffffff45;border-radius:9px;padding:7px}.settings option{color:#17352d}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin:22px 2px 12px}.section-title h2{font-size:16px;margin:0}.section-title span{font-size:12px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.card{background:var(--card);border:1px solid #e7eee9;border-radius:19px;padding:17px;box-shadow:0 5px 18px #153d2c08;min-height:132px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.ico{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:18px;background:#edf6ef}
+.label{font-size:13px;color:var(--muted);font-weight:600;margin-top:13px}.value{font-size:26px;font-weight:800;letter-spacing:-.7px;margin-top:4px;color:var(--green)}.blue .value{color:var(--blue)}.orange .value{color:var(--orange)}.green .value{color:var(--green)}
+.value small{font-size:14px;font-weight:700}.bar{height:6px;background:#edf2ee;border-radius:9px;margin-top:11px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--green);border-radius:9px;transition:width .25s}
+.pump{grid-column:1/-1;min-height:108px;display:flex;align-items:center;justify-content:space-between}.pump .value{font-size:22px}.pump-badge{font-size:12px;font-weight:800;border-radius:99px;padding:8px 12px;background:#fff0e8;color:#b45b29}.pump-badge.on{background:#e4f7eb;color:#16804e}
+.panel{background:#fff;border:1px solid #e7eee9;border-radius:19px;padding:16px;margin-top:12px}.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.panel-head h3{margin:0;font-size:15px}.panel-head span{font-size:12px;color:var(--muted)}
+#log{height:145px;overflow:auto;background:#10231f;color:#cce9d9;border-radius:12px;padding:12px;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.note{font-size:12px;color:var(--muted);line-height:1.55;margin:14px 3px 0}
+@media(max-width:390px){.wrap{padding:16px 12px}.grid{gap:9px}.card{padding:13px}.value{font-size:23px}.hero{padding:17px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+ <div class="brand"><div class="logo">🌱</div><div><h1>EcoFarm Monitor</h1><div class="sub">Arduino USB OTG · Live sensor dashboard</div></div></div>
+ <div class="pill">SERIAL MONITOR</div>
+</header>
+
+<section class="hero">
+ <div class="hero-top"><div><h2>Device connection</h2><p id="deviceText">Connect your Arduino using a USB OTG adapter.</p></div><div class="status"><i class="dot" id="dot"></i><span id="statusText">Disconnected</span></div></div>
+ <div class="controls">
+  <button class="btn primary" id="connectBtn">Connect Arduino</button>
+  <button class="btn secondary" id="disconnectBtn" disabled>Disconnect</button>
+ </div>
+ <div class="settings"><label for="baud">Baud rate</label><select id="baud"><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option selected>115200</option></select><span>Must match Arduino Serial.begin()</span></div>
+</section>
+
+<div class="section-title"><h2>Live sensor readings</h2><span id="updated">Waiting for data</span></div>
+<section class="grid">
+ <article class="card green"><div class="card-head"><div class="ico">💧</div></div><div class="label">Water Level</div><div class="value" id="water">--<small>%</small></div><div class="bar"><i id="waterBar"></i></div></article>
+ <article class="card blue"><div class="card-head"><div class="ico">🌱</div></div><div class="label">Soil Moisture</div><div class="value" id="soil">--</div><div class="bar"><i id="soilBar"></i></div></article>
+ <article class="card orange"><div class="card-head"><div class="ico">🌡️</div></div><div class="label">Temperature</div><div class="value" id="temp">--<small> °C</small></div></article>
+ <article class="card blue"><div class="card-head"><div class="ico">💨</div></div><div class="label">Humidity</div><div class="value" id="humidity">--<small>%</small></div><div class="bar"><i id="humidityBar"></i></div></article>
+ <article class="card pump"><div><div class="label">Water Pump Status</div><div class="value" id="pump">--</div></div><span class="pump-badge" id="pumpBadge">UNKNOWN</span></article>
+</section>
+
+<section class="panel">
+ <div class="panel-head"><h3>Arduino messages</h3><span>Live output</span></div>
+ <div id="log">Waiting for Arduino message...</div>
+</section>
+<p class="note">Connect only to a device you trust. If your phone/browser does not offer USB serial access, use a compatible USB-serial app or a supported Chrome/Android device. Sensor values appear when the Arduino sends matching labels over Serial.</p>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let port=null, reader=null, keepReading=false, buffer="";
+function logLine(s){const box=$("log");if(box.textContent==="Waiting for Arduino message...")box.textContent="";box.textContent+=(box.textContent?"\n":"")+s;box.scrollTop=box.scrollHeight;}
+function setStatus(connected,msg){$("dot").classList.toggle("on",connected);$("statusText").textContent=connected?"Connected":"Disconnected";$("deviceText").textContent=msg;$("connectBtn").disabled=connected;$("disconnectBtn").disabled=!connected;}
+function setValue(id,value,suffix=""){ $(id).innerHTML=value+`<small>${suffix}</small>`; }
+function updateReading(label,raw){
+ const v=raw.trim(); const n=parseFloat(v.replace(/[^\d.-]/g,""));
+ if(/water\s*level/i.test(label)){setValue("water",v.replace(/%/g,""),"%");$("waterBar").style.width=Math.max(0,Math.min(100,n))+"%";}
+ else if(/soil\s*moisture/i.test(label)){setValue("soil",v);$("soilBar").style.width=Math.max(0,Math.min(100,n/1023*100))+"%";}
+ else if(/temperature|temp/i.test(label)){setValue("temp",v.replace(/°?\s*C/i,"")," °C");}
+ else if(/humidity/i.test(label)){setValue("humidity",v.replace(/%/g,""),"%");$("humidityBar").style.width=Math.max(0,Math.min(100,n))+"%";}
+ else if(/pump\s*status|pump/i.test(label)){const on=/on|active|1|true/i.test(v)&&!/off|inactive|false/i.test(v);$("pump").textContent=on?"ON":"OFF";$("pumpBadge").textContent=on?"RUNNING":"STOPPED";$("pumpBadge").classList.toggle("on",on);}
+ $("updated").textContent="Updated "+new Date().toLocaleTimeString();
+}
+function parseLine(line){
+ line=line.trim();if(!line)return;logLine(line);
+ // Accept lines such as "Water Level: 75%" or JSON objects with matching keys.
+ try{if(line.startsWith("{")){const obj=JSON.parse(line);for(const [k,v] of Object.entries(obj))updateReading(k,String(v));return;}}catch(e){}
+ const m=line.match(/^\s*([^:=]+)\s*[:=]\s*(.*?)\s*$/);if(m)updateReading(m[1],m[2]);
+}
+async function connect(){
+ if(!("serial" in navigator)){alert("Web Serial is not available in this Chrome/browser on this phone. Try updating Chrome, or use a USB serial monitor app that supports your Arduino.");return;}
+ try{
+  port=await navigator.serial.requestPort();
+  await port.open({baudRate:Number($("baud").value)});
+  setStatus(true,"USB serial connection is open.");
+  keepReading=true;
+  const decoder=new TextDecoderStream();
+  port.readable.pipeTo(decoder.writable).catch(()=>{});
+  reader=decoder.readable.getReader();
+  while(keepReading){
+   const {value,done}=await reader.read();if(done)break;
+   buffer+=value;
+   const lines=buffer.split(/\r?\n/);buffer=lines.pop();
+   lines.forEach(parseLine);
+  }
+ }catch(err){if(err.name!=="NotFoundError")logLine("Connection error: "+err.message);setStatus(false,"Could not connect. Check cable, permission and baud rate.");}
+}
+async function disconnect(){
+ keepReading=false;
+ try{if(reader){await reader.cancel();reader.releaseLock();}}catch(e){}
+ try{if(port){await port.close();}}catch(e){}
+ reader=null;port=null;setStatus(false,"Device disconnected.");
+}
+$("connectBtn").addEventListener("click",connect);
+$("disconnectBtn").addEventListener("click",disconnect);
+if("serial" in navigator){navigator.serial.addEventListener("disconnect",()=>{setStatus(false,"USB device disconnected.");});}
+</script>
+</body>
+</html>
